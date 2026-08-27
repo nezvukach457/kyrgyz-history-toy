@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="ky">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Кыргыз тарыхы — Алып баруучу</title>
+
+<style>
+body{
+  margin:0;
+  background:linear-gradient(145deg,#07111f,#172d4b);
+  color:#fff;
+  font-family:Arial,sans-serif;
+}
+.wrap{
+  max-width:1100px;
+  margin:auto;
+  padding:25px;
+}
+h1{text-align:center}
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:20px;
+}
+.card{
+  background:#102038;
+  border:1px solid #29415f;
+  border-radius:22px;
+  padding:22px;
+  box-shadow:0 15px 40px #0005;
+}
+button{
+  width:100%;
+  padding:17px;
+  margin:7px 0;
+  border:0;
+  border-radius:14px;
+  font-size:18px;
+  font-weight:bold;
+  background:#f5bd45;
+  cursor:pointer;
+}
+.blue{background:#315b9a;color:white}
+.red{background:#e94d5f;color:white}
+.room{
+  font-size:50px;
+  font-weight:bold;
+  text-align:center;
+  color:#ffd45f;
+  letter-spacing:8px;
+}
+.q{
+  font-size:27px;
+  font-weight:bold;
+  line-height:1.4;
+}
+.num{
+  font-size:20px;
+  color:#a9bad0;
+}
+.timer{
+  text-align:center;
+  font-size:42px;
+  color:#ffd45f;
+  font-weight:bold;
+}
+#qrcode{
+  background:white;
+  padding:15px;
+  width:max-content;
+  margin:15px auto;
+}
+.player{
+  padding:10px;
+  border-bottom:1px solid #29415f;
+  display:flex;
+  justify-content:space-between;
+}
+.rank{
+  padding:12px;
+  border-bottom:1px solid #29415f;
+  font-size:18px;
+}
+.muted{
+  color:#a9bad0;
+  text-align:center;
+}
+.hidden{display:none}
+@media(max-width:700px){
+  .grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrap">
+
+<h1>🇰🇬 Кыргызстандын тарыхы — Алып баруучу</h1>
+
+<div class="grid">
+
+<div class="card">
+
+<h2>🎤 Оюн бөлмөсү</h2>
+
+<div class="room" id="roomCode">----</div>
+
+<div id="qrcode"></div>
+
+<p class="muted">
+Телефондон ушул QR-кодду сканерлеп оюнга кошулгула
+</p>
+
+<button id="newGame">🔄 Жаңы оюн</button>
+
+<button id="startGame">▶️ Оюнду баштоо</button>
+
+<button class="blue" id="nextQuestion">
+➡️ Кийинки суроо
+</button>
+
+<button class="red" id="finishGame">
+🏁 Оюнду бүтүрүү
+</button>
+
+<p id="msg" class="muted"></p>
+
+</div>
+
+
+<div class="card">
+
+<h2>📚 Азыркы суроо</h2>
+
+<div class="num" id="questionNumber">
+Оюн баштала элек
+</div>
+
+<br>
+
+<div class="q" id="questionText">
+Жаңы оюн түзүңүз
+</div>
+
+<div class="timer" id="timer">
+--
+</div>
+
+</div>
+
+
+<div class="card">
+
+<h2>👥 Катышуучулар</h2>
+
+<div id="players">
+Катышуучулар күтүлүүдө...
+</div>
+
+</div>
+
+
+<div class="card">
+
+<h2>🏆 LIVE рейтинг</h2>
+
+<div id="ranking">
+Катышуучулар күтүлүүдө...
+</div>
+
+</div>
+
+</div>
+</div>
+
+
+<!-- QR CODE -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+
+<script type="module">
+
+import {
+ initializeApp
+} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+
+import {
+ getDatabase,
+ ref,
+ set,
+ get,
+ update,
+ onValue
+} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+
+
+/*
+====================================================
+ FIREBASE CONFIG
+====================================================
+
+Төмөнкү блокту index.html файлындагы
+firebaseConfig менен ТАК бирдей кыл.
+
+*/
+
+ apiKey:"PASTE_API_KEY",
+
+ authDomain:"kyrgyz-history-toy.firebaseapp.com",
+
+ databaseURL:"https://kyrgyz-history-toy-default-rtdb.firebaseio.com",
+
+ projectId:"kyrgyz-history-toy",
+
+ appId:"PASTE_APP_ID"
+
+};
+
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+
+/* ==============================
+   СУРООЛОР
+================================ */
+
+const questions = [
+
+"Кыргыз каганаты кайсы кылымдарда күчтүү мамлекет болгон?",
+
+"Енисей кыргыздары кайсы аймак менен байланыштуу?",
+
+"«Манас» эпосунун башкы каарманы ким?",
+
+"Баласагын шаары кайсы мамлекеттин борборлорунун бири болгон?",
+
+"Жусуп Баласагындын белгилүү чыгармасы?",
+
+"Махмуд Кашгаринин белгилүү эмгеги?",
+
+"Кокон хандыгынын таасири кыргыз жерине XIX кылымда тараганбы?",
+
+"1916-жылдагы чоң тарыхый окуя кандай аталат?","Кыргыз АССРи кайсы жылы түзүлгөн?",
+
+"Кыргыз ССРи кайсы мезгилде болгон?",
+
+"Кыргызстан эгемендүүлүгүн кайсы жылы жарыялаган?",
+
+"Эгемендүүлүк күнү кайсы датада?",
+
+"Биринчи Конституция эгемендүүлүк мезгилинде кайсы жылы кабыл алынган?",
+
+"Кыргызстандын желегиндеги түндүктүн шакек саны?",
+
+"Чыңгыз Айтматов дүйнөгө кайсы тармакта таанылган?",
+
+"«Манас» кайсы элдин дүйнөлүк маданий мурасы?",
+
+"Кыргызстандын байыркы тарыхын изилдөөдөгү маанилүү булактардын бири?",
+
+"Кыргызстандын Россия империясына кошулушу негизинен кайсы кылымда күчөгөн?",
+
+"Кыргыз Республикасынын мамлекеттик гимнинин авторлорунун бири?",
+
+"Кыргызстандын тарыхында Улуу Жибек жолу маанилүү болгонбу?"
+
+];
+
+
+let room = "";
+let current = 0;
+let timerInterval = null;
+
+
+/* ==============================
+   HTML ELEMENTS
+================================ */
+
+const $ = id => document.getElementById(id);
+
+
+/* ==============================
+   ЖАҢЫ БӨЛМӨ
+================================ */
+
+$("newGame").onclick = async () => {
+
+ room = Math.floor(1000 + Math.random() * 9000).toString();
+
+ current = 0;
+
+ await set(ref(db,"rooms/"+room),{
+
+   status:"waiting",
+
+   current:0,
+
+   deadline:0,
+
+   players:{}
+
+ });
+
+ $("roomCode").textContent = room;
+
+ $("questionNumber").textContent = "Оюн баштала элек";
+
+ $("questionText").textContent =
+   "Катышуучулар телефондон кошулсун";
+
+ $("timer").textContent = "--";
+
+ $("msg").textContent =
+   "Бөлмө түзүлдү! Код: " + room;
+
+
+ $("qrcode").innerHTML = "";
+
+ new QRCode($("qrcode"),{
+
+   text:"https://kyrgyz-history-toy.web.app/?room="+room,
+
+   width:220,
+
+   height:220
+
+ });
+
+ listenRoom();
+
+};
+
+
+/* ==============================
+   ОЮНДУ БАШТОО
+================================ */
+
+$("startGame").onclick = async () => {
+
+ if(!room){
+
+   $("msg").textContent =
+     "Адегенде «Жаңы оюн» басыңыз.";
+
+   return;
+ }
+
+ current = 0;
+
+ await update(ref(db,"rooms/"+room),{
+
+   status:"question",
+
+   current:0,
+
+   deadline:Date.now()+20000
+
+ });
+
+};
+
+
+/* ==============================
+   КИЙИНКИ СУРОО
+================================ */
+
+$("nextQuestion").onclick = async () => {
+
+ if(!room) return;
+
+ current++;
+
+ if(current >= questions.length){
+
+   await update(ref(db,"rooms/"+room),{
+
+     status:"finished"
+
+   });
+
+   $("questionText").textContent =
+     "🏆 Оюн бүттү!";
+
+   $("timer").textContent = "🎉";
+
+   return;
+ }
+
+
+ await update(ref(db,"rooms/"+room),{
+
+   status:"question",
+
+   current:current,
+
+   deadline:Date.now()+20000
+
+ });
+
+};
+
+
+/* ==============================
+   ОЮНДУ БҮТҮРҮҮ
+================================ */
+
+$("finishGame").onclick = async () => {
+
+ if(!room) return;
+
+ await update(ref(db,"rooms/"+room),{
+
+   status:"finished"
+
+ });
+
+ $("questionText").textContent =
+   "🏆 Оюн бүттү!";
+
+};
+
+
+/* ==============================
+   FIREBASE LISTENER
+================================ */
+
+function listenRoom(){
+
+ onValue(ref(db,"rooms/"+room), snapshot => {
+
+   const data = snapshot.val();
+
+   if(!data) return;
+
+
+   current = Number(data.current || 0);
+
+
+   /* Суроо */
+
+   if(data.status === "question"){
+
+     $("questionNumber").textContent =
+       (current+1) + " / " + questions.length;
+
+     $("questionText").textContent =
+       questions[current];
+
+   }
+
+
+   /* Катышуучулар */
+
+   const players = data.players || {};
+
+   const list = Object.values(players);
+
+
+   if(list.length === 0){
+
+     $("players").innerHTML =
+       "Катышуучулар күтүлүүдө...";
+
+     $("ranking").innerHTML =
+       "Катышуучулар күтүлүүдө...";
+
+   }else{
+
+     $("players").innerHTML = list.map(p => 
+
+       <div class="player">
+
+         <span>👤 ${escapeHtml(p.name || "")}</span>
+
+         <b>${p.score || 0}</b>
+
+       </div>
+
+     ).join("");
+
+
+     const sorted = [...list].sort(
+       (a,b)=>(b.score0)-(a.score0)
+     );
+
+
+     $("ranking").innerHTML =
+       sorted.map((p,i)=>
+
+       <div class="rank">
+
+         ${i+1}. ${escapeHtml(p.name || "")}
+
+         <b>${p.score || 0} упай</b>
+
+       </div>
+
+     ).join("");
+
+   }
+
+
+   /* Таймер */
+
+   if(data.status === "question"){
+
+     startTimer(Number(data.deadline || 0));}else{
+
+     stopTimer();
+
+   }
+
+ });
+
+}
+
+
+/* ==============================
+   ТАЙМЕР
+================================ */
+
+function startTimer(deadline){
+
+ stopTimer();
+
+ function tick(){
+
+   const left =
+     Math.max(0, deadline-Date.now());
+
+   const seconds =
+     Math.ceil(left/1000);
+
+   $("timer").textContent =
+     seconds + " сек.";
+
+   if(left <= 0){
+
+     stopTimer();
+
+     $("timer").textContent =
+       "⏰ Убакыт бүттү";
+
+   }
+
+ }
+
+ tick();
+
+ timerInterval = setInterval(tick,250);
+
+}
+
+
+function stopTimer(){
+
+ if(timerInterval){
+
+   clearInterval(timerInterval);
+
+   timerInterval = null;
+
+ }
+
+}
+
+
+/* ==============================
+   КООПСУЗ ТЕКСТ
+================================ */
+
+function escapeHtml(text){
+
+ return String(text).replace(
+   /[&<>"']/g,
+
+   m => ({
+
+     "&":"&amp;",
+     "<":"&lt;",
+     ">":"&gt;",
+     '"':"&quot;",
+     "'":"&#39;"
+
+   }[m])
+
+ );
+
+}
+
+</script>
+
+</body>
+</html>
