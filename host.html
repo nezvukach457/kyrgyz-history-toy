@@ -304,15 +304,10 @@ $("newGame").onclick = async () => {
  current = 0;
 
  await set(ref(db,"rooms/"+room),{
-
-   status:"waiting",
-
+   status:"waiting"
    current:0,
-
    deadline:0,
-
    players:{}
-
  });
 
  $("roomCode").textContent = room;
