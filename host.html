@@ -64,6 +64,7 @@ button{
   font-size:42px;
   color:#ffd45f;
   font-weight:bold;
+  margin-top:20px;
 }
 #qrcode{
   background:white;
@@ -81,20 +82,28 @@ button{
   padding:12px;
   border-bottom:1px solid #29415f;
   font-size:18px;
+  display:flex;
+  justify-content:space-between;
 }
 .muted{
   color:#a9bad0;
   text-align:center;
 }
 .hidden{display:none}
+.status{
+  text-align:center;
+  margin:10px 0;
+  font-weight:bold;
+}
 @media(max-width:700px){
   .grid{grid-template-columns:1fr}
+  .q{font-size:23px}
+  .room{font-size:42px}
 }
 </style>
 </head>
 
 <body>
-
 <div class="wrap">
 
 <h1>🇰🇬 Кыргызстандын тарыхы — Алып баруучу</h1>
@@ -102,7 +111,6 @@ button{
 <div class="grid">
 
 <div class="card">
-
 <h2>🎤 Оюн бөлмөсү</h2>
 
 <div class="room" id="roomCode">----</div>
@@ -126,12 +134,9 @@ button{
 </button>
 
 <p id="msg" class="muted"></p>
-
 </div>
 
-
 <div class="card">
-
 <h2>📚 Азыркы суроо</h2>
 
 <div class="num" id="questionNumber">
@@ -147,453 +152,619 @@ button{
 <div class="timer" id="timer">
 --
 </div>
-
 </div>
 
-
 <div class="card">
-
 <h2>👥 Катышуучулар</h2>
 
 <div id="players">
 Катышуучулар күтүлүүдө...
 </div>
-
 </div>
 
 <div class="card">
-
 <h2>🏆 LIVE рейтинг</h2>
 
 <div id="ranking">
 Катышуучулар күтүлүүдө...
 </div>
-
 </div>
 
 </div>
 </div>
 
-<!-- QR CODE -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
 
 <script type="module">
 
 import {
- initializeApp
+  initializeApp
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 
 import {
- getDatabase,
- ref,
- set,
- get,
- update,
- onValue
+  getDatabase,
+  ref,
+  set,
+  update,
+  onValue
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
 
-/*
-====================================================
- FIREBASE CONFIG
-====================================================
-
-Төмөнкү блокту index.html файлындагы
-firebaseConfig менен ТАК бирдей кыл.
-
-*/
+/* ==================================================
+   FIREBASE CONFIG
+================================================== */
 
 const firebaseConfig = {
-apiKey: "AIzaSyAzjhXYiEUJYMH1r-cu1objEp5ZDCVISOA",
-authDomain: "kyrgyz-history-toy.firebaseapp.com",
-databaseURL: "https://kyrgyz-history-toy-default-rtdb.firebaseio.com",projectId: "kyrgyz-history-toy",storageBucket: "kyrgyz-history-toy.firebasestorage.app",
-messagingSenderId: "876782310716",
-appId: "1:876782310716:web:cd367f7bd8562244da7a39",
-measurementId: "G-0P89NE0EL4"
-
-
- authDomain:"kyrgyz-history-toy.firebaseapp.com",
-
- databaseURL:"https://kyrgyz-history-toy-default-rtdb.firebaseio.com",
-
- projectId:"kyrgyz-history-toy",
-
- storageBucket:"kyrgyz-history-toy.firebasestorage.app",
-
- 
-
- 
-
-
+  apiKey: "AIzaSyAzjhXYiEUJYMH1r-cu1objEp5ZDCVISOA",
+  authDomain: "kyrgyz-history-toy.firebaseapp.com",
+  databaseURL: "https://kyrgyz-history-toy-default-rtdb.firebaseio.com",
+  projectId: "kyrgyz-history-toy",
+  storageBucket: "kyrgyz-history-toy.firebasestorage.app",
+  messagingSenderId: "876782310716",
+  appId: "1:876782310716:web:cd367f7bd8562244da7a39",
+  measurementId: "G-0P89NE0EL4"
+};
 
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 
-/* ==============================
+/* ==================================================
    СУРООЛОР
-================================ */
+================================================== */
 
 const questions = [
 
-"Кыргыз каганаты кайсы кылымдарда күчтүү мамлекет болгон?",
+  "Кыргыз каганаты кайсы кылымдарда күчтүү мамлекет болгон?",
 
-"Енисей кыргыздары кайсы аймак менен байланыштуу?",
+  "Енисей кыргыздары кайсы аймак менен байланыштуу?",
 
-"«Манас» эпосунун башкы каарманы ким?",
+  "«Манас» эпосунун башкы каарманы ким?",
 
-"Баласагын шаары кайсы мамлекеттин борборлорунун бири болгон?",
+  "Баласагын шаары кайсы мамлекеттин борборлорунун бири болгон?",
 
-"Жусуп Баласагындын белгилүү чыгармасы?",
+  "Жусуп Баласагындын белгилүү чыгармасы?",
 
-"Махмуд Кашгаринин белгилүү эмгеги?",
+  "Махмуд Кашгаринин белгилүү эмгеги?",
 
-"Кокон хандыгынын таасири кыргыз жерине XIX кылымда тараганбы?",
+  "Кокон хандыгынын таасири кыргыз жерине XIX кылымда тараганбы?",
 
-"1916-жылдагы чоң тарыхый окуя кандай аталат?","Кыргыз АССРи кайсы жылы түзүлгөн?",
+  "1916-жылдагы чоң тарыхый окуя кандай аталат?",
 
-"Кыргыз ССРи кайсы мезгилде болгон?",
+  "Кыргыз АССРи кайсы жылы түзүлгөн?",
 
-"Кыргызстан эгемендүүлүгүн кайсы жылы жарыялаган?",
+  "Кыргыз ССРи кайсы мезгилде болгон?",
 
-"Эгемендүүлүк күнү кайсы датада?",
+  "Кыргызстан эгемендүүлүгүн кайсы жылы жарыялаган?",
 
-"Биринчи Конституция эгемендүүлүк мезгилинде кайсы жылы кабыл алынган?",
+  "Эгемендүүлүк күнү кайсы датада?",
 
-"Кыргызстандын желегиндеги түндүктүн шакек саны?",
+  "Биринчи Конституция эгемендүүлүк мезгилинде кайсы жылы кабыл алынган?",
 
-"Чыңгыз Айтматов дүйнөгө кайсы тармакта таанылган?",
+  "Кыргызстандын желегиндеги түндүктүн шакек саны?",
 
-"«Манас» кайсы элдин дүйнөлүк маданий мурасы?",
+  "Чыңгыз Айтматов дүйнөгө кайсы тармакта таанылган?",
 
-"Кыргызстандын байыркы тарыхын изилдөөдөгү маанилүү булактардын бири?",
+  "«Манас» кайсы элдин дүйнөлүк маданий мурасы?",
 
-"Кыргызстандын Россия империясына кошулушу негизинен кайсы кылымда күчөгөн?",
+  "Кыргызстандын байыркы тарыхын изилдөөдөгү маанилүү булактардын бири?",
 
-"Кыргыз Республикасынын мамлекеттик гимнинин авторлорунун бири?",
+  "Кыргызстандын Россия империясына кошулушу негизинен кайсы кылымда күчөгөн?",
 
-"Кыргызстандын тарыхында Улуу Жибек жолу маанилүү болгонбу?"
+  "Кыргыз Республикасынын мамлекеттик гимнинин авторлорунун бири?",
+
+  "Кыргызстандын тарыхында Улуу Жибек жолу маанилүү болгонбу?"
 
 ];
 
 
+/* ==================================================
+   ОЮНДУН ӨЗГӨРМӨЛӨРҮ
+================================================== */
+
 let room = "";
 let current = 0;
 let timerInterval = null;
+let roomListener = null;
 
 
-/* ==============================
+/* ==================================================
    HTML ELEMENTS
-================================ */
+================================================== */
 
 const $ = id => document.getElementById(id);
 
 
-/* ==============================
-   ЖАҢЫ БӨЛМӨ
-================================ */
+/* ==================================================
+   ЖАҢЫ БӨЛМӨ ТҮЗҮҮ
+================================================== */
 
 $("newGame").onclick = async () => {
 
- room = Math.floor(1000 + Math.random() * 9000).toString();
+  try {
 
- current = 0;
+    room = Math.floor(
+      1000 + Math.random() * 9000
+    ).toString();
 
- await set(ref(db,"rooms/"+room),{
-   status:"waiting",
-   current: 0,
-   deadline: 0,
-   players: {}
- });
+    current = 0;
 
- $("roomCode").textContent = room;
+    await set(
+      ref(db, "rooms/" + room),
+      {
+        status: "waiting",
+        current: 0,
+        deadline: 0,
+        players: {}
+      }
+    );
 
- $("questionNumber").textContent = "Оюн баштала элек";
+    $("roomCode").textContent = room;
 
- $("questionText").textContent =
-   "Катышуучулар телефондон кошулсун";
+    $("questionNumber").textContent =
+      "Оюн баштала элек";
 
- $("timer").textContent = "--";
+    $("questionText").textContent =
+      "Катышуучулар телефондон кошулсун";
 
- $("msg").textContent =
-   "Бөлмө түзүлдү! Код: " + room;
+    $("timer").textContent = "--";
 
+    $("msg").textContent =
+      "Бөлмө түзүлдү! Код: " + room;
 
- $("qrcode").innerHTML = "";
+    $("qrcode").innerHTML = "";
 
- new QRCode($("qrcode"),{
+    new QRCode(
+      $("qrcode"),
+      {
+        text:
+          "https://kyrgyz-history-toy.web.app/?room=" +
+          room,
+        width: 220,
+        height: 220
+      }
+    );
 
-   text:"https://kyrgyz-history-toy.web.app/?room="+room,
+    listenRoom();
 
-   width:220,
+  } catch (error) {
 
-   height:220
+    console.error(error);
 
- });
+    $("msg").textContent =
+      "Ката: " + error.message;
 
- listenRoom();
+  }
 
 };
 
 
-/* ==============================
+/* ==================================================
    ОЮНДУ БАШТОО
-================================ */
+================================================== */
 
 $("startGame").onclick = async () => {
 
- if(!room){
+  try {
 
-   $("msg").textContent =
-     "Адегенде «Жаңы оюн» басыңыз.";
+    if (!room) {
 
-   return;
- }
+      $("msg").textContent =
+        "Адегенде «Жаңы оюн» басыңыз.";
 
- current = 0;
+      return;
+    }
 
- await update(ref(db,"rooms/"+room),{
+    current = 0;
 
-   status:"question",
+    await update(
+      ref(db, "rooms/" + room),
+      {
+        status: "question",
+        current: 0,
+        deadline: Date.now() + 20000
+      }
+    );
 
-   current:0,
+    $("msg").textContent =
+      "Оюн башталды!";
 
-   deadline:Date.now()+20000
+  } catch (error) {
 
- });
+    console.error(error);
+
+    $("msg").textContent =
+      "Ката: " + error.message;
+
+  }
 
 };
 
 
-/* ==============================
+/* ==================================================
    КИЙИНКИ СУРОО
-================================ */
+================================================== */
 
 $("nextQuestion").onclick = async () => {
 
- if(!room) return;
+  try {
 
- current++;
+    if (!room) {
 
- if(current >= questions.length){
+      $("msg").textContent =
+        "Адегенде жаңы оюн түзүңүз.";
 
-   await update(ref(db,"rooms/"+room),{
+      return;
+    }
 
-     status:"finished"
+    current++;
 
-   });
+    if (current >= questions.length) {
 
-   $("questionText").textContent =
-     "🏆 Оюн бүттү!";
+      await update(
+        ref(db, "rooms/" + room),
+        {
+          status: "finished",
+          current: questions.length - 1,
+          deadline: 0
+        }
+      );
 
-   $("timer").textContent = "🎉";
+      $("questionText").textContent =
+        "🏆 Оюн бүттү!";
 
-   return;
- }
+      $("questionNumber").textContent =
+        "Жыйынтык";
 
+      $("timer").textContent = "🎉";
 
- await update(ref(db,"rooms/"+room),{
+      $("msg").textContent =
+        "Оюн аяктады.";
 
-   status:"question",
+      return;
+    }
 
-   current:current,
+    await update(
+      ref(db, "rooms/" + room),
+      {
+        status: "question",
+        current: current,
+        deadline: Date.now() + 20000
+      }
+    );
 
-   deadline:Date.now()+20000
+    $("msg").textContent =
+      "Кийинки суроо ачылды.";
 
- });
+  } catch (error) {
+
+    console.error(error);
+
+    $("msg").textContent =
+      "Ката: " + error.message;
+
+  }
 
 };
 
 
-/* ==============================
+/* ==================================================
    ОЮНДУ БҮТҮРҮҮ
-================================ */
+================================================== */
 
 $("finishGame").onclick = async () => {
 
- if(!room) return;
+  try {
 
- await update(ref(db,"rooms/"+room),{
+    if (!room) {
 
-   status:"finished"
+      $("msg").textContent =
+        "Активдүү оюн жок.";
 
- });
+      return;
+    }
 
- $("questionText").textContent =
-   "🏆 Оюн бүттү!";
+    await update(
+      ref(db, "rooms/" + room),
+      {
+        status: "finished",
+        deadline: 0
+      }
+    );
+
+    $("questionText").textContent =
+      "🏆 Оюн бүттү!";
+
+    $("questionNumber").textContent =
+      "Жыйынтык";
+
+    $("timer").textContent = "🎉";
+
+    $("msg").textContent =
+      "Оюн ийгиликтүү бүттү.";
+
+  } catch (error) {
+
+    console.error(error);
+
+    $("msg").textContent =
+      "Ката: " + error.message;
+
+  }
 
 };
 
 
-/* ==============================
+/* ==================================================
    FIREBASE LISTENER
-================================ */
+================================================== */
 
-function listenRoom(){
+function listenRoom() {
 
- onValue(ref(db,"rooms/"+room), snapshot => {
+  if (!room) return;
 
-   const data = snapshot.val();
+  if (roomListener) {
+    roomListener();
+    roomListener = null;
+  }
 
-   if(!data) return;
+  roomListener = onValue(
+    ref(db, "rooms/" + room),
+    snapshot => {
 
+      const data = snapshot.val();
 
-   current = Number(data.current || 0);
+      if (!data) return;
 
-
-   /* Суроо */
-
-   if(data.status === "question"){
-
-     $("questionNumber").textContent =
-       (current+1) + " / " + questions.length;
-
-     $("questionText").textContent =
-       questions[current];
-
-   }
+      current =
+        Number(data.current || 0);
 
 
-   /* Катышуучулар */
+      /* ------------------------------
+         СУРОО
+      ------------------------------ */
 
-   const players = data.players || {};
+      if (data.status === "question") {
 
-   const list = Object.values(players);
+        $("questionNumber").textContent =
+          (current + 1) +
+          " / " +
+          questions.length;
 
+        $("questionText").textContent =
+          questions[current];
 
-   if(list.length === 0){
-
-     $("players").innerHTML =
-       "Катышуучулар күтүлүүдө...";
-
-     $("ranking").innerHTML =
-       "Катышуучулар күтүлүүдө...";
-
-   }else{
-
-     $("players").innerHTML = list.map(p => 
-
-       <div class="player">
-
-         <span>👤 ${escapeHtml(p.name || "")}</span>
-
-         <b>${p.score || 0}</b>
-
-       </div>
-
-     ).join("");
+      }
 
 
-     const sorted = [...list].sort(
-       (a,b)=>(b.score || 0)-(a.score || 0)
-     );
+      /* ------------------------------
+         ОЮН БҮТКӨНДӨ
+      ------------------------------ */
+
+      if (data.status === "finished") {
+
+        $("questionNumber").textContent =
+          "Жыйынтык";
+
+        $("questionText").textContent =
+          "🏆 Оюн бүттү!";
+
+        $("timer").textContent =
+          "🎉";
+
+      }
 
 
-     $("ranking").innerHTML =
-       sorted.map((p,i)=>
+      /* ------------------------------
+         КАТЫШУУЧУЛАР
+      ------------------------------ */
 
-       <div class="rank">
+      const players =
+        data.players || {};
 
-         ${i+1}. ${escapeHtml(p.name || "")}
-
-         <b>${p.score || 0} упай</b>
-
-       </div>
-
-     ).join("");
-
-   }
+      const list =
+        Object.values(players);
 
 
-   /* Таймер */
+      if (list.length === 0) {
 
-   if(data.status === "question"){
+        $("players").innerHTML =
+          "Катышуучулар күтүлүүдө...";
 
-     startTimer(Number(data.deadline || 0));}else{
+        $("ranking").innerHTML =
+          "Катышуучулар күтүлүүдө...";
 
-     stopTimer();
+      } else {
 
-   }
+        $("players").innerHTML =
+          list.map(
+            p => `
+              <div class="player">
+                <span>
+                  👤 ${escapeHtml(p.name || "")}
+                </span>
+                <b>${Number(p.score || 0)}</b>
+              </div>
+            `
+          ).join("");
 
- });
+
+        const sorted =
+          [...list].sort(
+            (a, b) =>
+              Number(b.score || 0) -
+              Number(a.score || 0)
+          );
+
+
+        $("ranking").innerHTML =
+          sorted.map(
+            (p, i) => `
+              <div class="rank">
+                <span>
+                  ${i + 1}. ${escapeHtml(p.name || "")}
+                </span>
+                <b>
+                  ${Number(p.score || 0)} упай
+                </b>
+              </div>
+            `
+          ).join("");
+
+      }
+
+
+      /* ------------------------------
+         ТАЙМЕР
+      ------------------------------ */
+
+      if (data.status === "question") {
+
+        startTimer(
+          Number(data.deadline || 0)
+        );
+
+      } else {
+
+        stopTimer();
+
+      }
+
+    }
+  );
 
 }
 
 
-/* ==============================
+/* ==================================================
    ТАЙМЕР
-================================ */
+================================================== */
 
-function startTimer(deadline){
+function startTimer(deadline) {
 
- stopTimer();
+  stopTimer();
 
- function tick(){
 
-   const left =
-     Math.max(0, deadline-Date.now());
+  function tick() {
 
-   const seconds =
-     Math.ceil(left/1000);
+    const left =
+      Math.max(
+        0,
+        deadline - Date.now()
+      );
 
-   $("timer").textContent =
-     seconds + " сек.";
 
-   if(left <= 0){
+    const seconds =
+      Math.ceil(left / 1000);
 
-     stopTimer();
 
-     $("timer").textContent =
-       "⏰ Убакыт бүттү";
+    $("timer").textContent =
+      seconds + " сек.";
 
-   }
 
- }
+    if (left <= 0) {
 
- tick();
+      stopTimer();
 
- timerInterval = setInterval(tick,250);
+      $("timer").textContent =
+        "⏰ Убакыт бүттү";
+
+    }
+
+  }
+
+
+  tick();
+
+  timerInterval =
+    setInterval(
+      tick,
+      250
+    );
 
 }
 
 
-function stopTimer(){
+/* ==================================================
+   ТАЙМЕРДИ ТОКТОТУУ
+================================================== */
 
- if(timerInterval){
+function stopTimer() {
 
-   clearInterval(timerInterval);
+  if (timerInterval) {
 
-   timerInterval = null;
+    clearInterval(
+      timerInterval
+    );
 
- }
+    timerInterval = null;
+
+  }
 
 }
 
 
-/* ==============================
+/* ==================================================
    КООПСУЗ ТЕКСТ
-================================ */
+================================================== */
 
-function escapeHtml(text){
+function escapeHtml(text) {
 
- return String(text).replace(
-   /[&<>"']/g,
-
-   m => ({
-
-     "&":"&amp;",
-     "<":"&lt;",
-     ">":"&gt;",
-     '"':"&quot;",
-     "'":"&#39;"
-
-   }[m])
-
- );
+  return String(text).replace(
+    /[&<>"']/g,
+    m => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    }[m])
+  );
 
 }
+
+
+/* ==================================================
+   URL ДАНЫШЫНАН БӨЛМӨНҮ ОКУУ
+================================================== */
+
+const urlParams =
+  new URLSearchParams(
+    window.location.search
+  );
+
+const urlRoom =
+  urlParams.get("room");
+
+
+if (urlRoom) {
+
+  room = urlRoom;
+
+  $("roomCode").textContent =
+    room;
+
+  $("msg").textContent =
+    "Бөлмө: " + room;
+
+  listenRoom();
+
+}
+
+
+/* ==================================================
+   БАШКЫ АБАЛ
+================================================== */
+
+$("questionNumber").textContent =
+  "Оюн баштала элек";
+
+$("questionText").textContent =
+  "Жаңы оюн түзүңүз";
+
+$("timer").textContent =
+  "--";
 
 </script>
 
